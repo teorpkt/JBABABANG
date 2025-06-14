@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Journal de Trail</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 2rem;
+      background: #f8f8f8;
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 { text-align: center; }
+    form, .card {
+      background: white;
+      padding: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+    }
+    label {
+      display: block;
+      margin: 0.5rem 0 0.2rem;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 0.4rem;
+      margin-bottom: 0.6rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      padding: 0.6rem 1.2rem;
+      background: #f70059;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Journal de Trail</h1>
+
+  <form id="trailForm">
+    <label>Date</label>
+    <input type="date" name="Date" required>
+
+    <label>Type</label>
+    <input type="text" name="Type" placeholder="Entraînement, course..." required>
+
+    <label>Distance (km)</label>
+    <input type="number" step="0.1" name="Distance en km" required>
+
+    <label>Allure (min/km)</label>
+    <input type="text" name="Allure min:km" required>
+
+    <label>D+ (m)</label>
+    <input type="number" name="Dénivelé positif en m">
+
+    <label>D- (m)</label>
+    <input type="number" name="Dénivelé negatif en m">
+
+    <label>BPM moyen</label>
+    <input type="number" name="BPM moyen">
+
+    <label>Lieu</label>
+    <input type="text" name="Lieu">
+
+    <label>Info supplémentaire</label>
+    <textarea name="Info supplementaire" rows="2"></textarea>
+
+    <button type="submit">Ajouter la sortie</button>
+  </form>
+
+  <div class="card" id="lastEntry">
+    <h2>Chargement...</h2>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbzkOV3ff15uXrLVC9j3zAhSXlwfYRSHEttfbzX8sIePZs0nTLic6NsqhYZeWZvg8Zc/exec";
+
+    // Envoi du formulaire
+    document.getElementById("trailForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const form = e.target;
+      const data = Object.fromEntries(new FormData(form).entries());
+
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
+
+      form.reset();
+      loadLastEntry();
+    });
+
+    // Chargement de la dernière ligne
+    async function loadLastEntry() {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+      const div = document.getElementById('lastEntry');
+      div.innerHTML = `
+        <h2>Dernière sortie : ${data.Date}</h2>
+        <p><strong>Type :</strong> ${data.Type}</p>
+        <p><strong>Distance :</strong> ${data['Distance en km']} km</p>
+        <p><strong>Allure :</strong> ${data['Allure min:km']}</p>
+        <p><strong>D+ / D- :</strong> ${data['Dénivelé positif en m']} m / ${data['Dénivelé negatif en m']} m</p>
+        <p><strong>BPM moyen :</strong> ${data['BPM moyen']}</p>
+        <p><strong>Lieu :</strong> ${data.Lieu}</p>
+        <p><strong>Info :</strong> ${data['Info supplementaire']}</p>
+      `;
+    }
+
+    loadLastEntry();
+  </script>
+
+</body>
+</html>
