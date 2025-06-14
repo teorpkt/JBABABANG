@@ -1,88 +1,133 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>JBABABANG</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet" />
+  <meta charset="UTF-8">
+  <title>Ajouter un point - Cartolab</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    :root {
-      --accent: #f70059;
-      --text: #222;
-      --bg: #fdfdfd;
-      --max-width: 26rem;
+    body {
+      font-family: sans-serif;
+      padding: 0;
+      margin: 0;
     }
-
-    * {
-      box-sizing: border-box;
+    h2 {
+      padding: 20px;
     }
-
-    html {
+    form {
+      padding: 0 20px 20px;
+      max-width: 500px;
+      margin: auto;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 8px;
       font-size: 16px;
     }
-
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+    button {
+      margin-top: 20px;
+      padding: 10px 15px;
+      font-size: 16px;
+      cursor: pointer;
     }
-
-    main {
-      width: 100%;
-      max-width: var(--max-width);
-      padding: 2rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    #map {
+      height: 300px;
+      margin: 20px auto;
+      max-width: 500px;
     }
-
-    h1 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      margin-bottom: 3rem;
+    #resultat {
+      padding: 0 20px;
+      font-weight: bold;
       text-align: center;
-      letter-spacing: -0.03em;
     }
-
-    .btn {
-      width: 100%;
-      margin-bottom: 1rem;
-      padding: 1rem 1.2rem;
-      font-size: 0.9rem;
-      font-weight: 700;
-      text-transform: uppercase;
+    #retour {
       text-align: center;
-      border: 2px solid var(--accent);
-      color: var(--accent);
-      background: white;
-      border-radius: 0.75rem;
-      text-decoration: none;
-      transition: all 0.2s ease;
-    }
-
-    .btn:hover,
-    .btn:focus {
-      background: var(--accent);
-      color: white;
-    }
-
-    .btn:active {
-      transform: scale(0.97);
+      margin-bottom: 30px;
     }
   </style>
 </head>
 <body>
-  <main>
-    <h1>JBABABANG</h1>
-    <a href="add.html" class="btn">Ajouter une stat</a>
-    <a href="stats.html" class="btn">Voir les stats</a>
-    <a href="badges.html" class="btn">Voir les badges</a>
-  </main>
+  <h2>➕ Ajouter un point à Cartolab</h2>
+
+  <div id="map"></div>
+
+  <form id="pointForm">
+    <label>Coordonnées GPS (auto-rempli en cliquant sur la carte)</label>
+    <input type="text" name="gps" id="gpsInput" required placeholder="latitude,longitude">
+
+    <label>Type</label>
+    <select name="type" required>
+      <option value="water">Water</option>
+      <option value="wc">WC</option>
+      <option value="douche">Douche</option>
+    </select>
+
+    <label>Info complémentaire (optionnel)</label>
+    <textarea name="info" rows="3" placeholder="ex: eau fraîche, proche fontaine..."></textarea>
+
+    <button type="submit">Ajouter le point</button>
+  </form>
+
+  <p id="resultat"></p>
+  <p id="retour"><a href="index.html">← Retour à la carte</a></p>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([46.6, 1.88], 6);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}{r}.png', {
+      maxZoom: 20
+    }).addTo(map);
+
+    let marker = null;
+
+    map.on('click', function(e) {
+      const lat = e.latlng.lat.toFixed(5);
+      const lng = e.latlng.lng.toFixed(5);
+      document.getElementById('gpsInput').value = `${lat},${lng}`;
+      if (marker) map.removeLayer(marker);
+      marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+      marker.on("dragend", function (ev) {
+        const { lat, lng } = ev.target.getLatLng();
+        document.getElementById('gpsInput').value = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+      });
+    });
+
+    document.getElementById('pointForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        gps: form.gps.value.trim(),
+        type: form.type.value,
+        info: form.info.value.trim()
+      };
+
+      const gpsRegex = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/;
+      if (!gpsRegex.test(data.gps)) {
+        document.getElementById('resultat').textContent = "❌ Coordonnées GPS invalides.";
+        return;
+      }
+
+      try {
+        const res = await fetch('https://script.google.com/macros/s/AKfycbzaKXI5ZS0st9pGVqscycVnfa8WfYC6L74J3EWp-8Nv-wjuCLkH8isdxRYfWcoGg9uDqw/exec', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const txt = await res.text();
+        document.getElementById('resultat').textContent = txt.includes('success') 
+          ? "✅ Point ajouté !" 
+          : "❌ Erreur : " + txt;
+        form.reset();
+        if (marker) map.removeLayer(marker);
+      } catch (err) {
+        document.getElementById('resultat').textContent = "❌ Erreur réseau ou serveur.";
+      }
+    });
+  </script>
 </body>
 </html>
