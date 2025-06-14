@@ -112,11 +112,12 @@
       }
 
       try {
-        const res = await fetch('https://script.google.com/macros/s/AKfycbzaKXI5ZS0st9pGVqscycVnfa8WfYC6L74J3EWp-8Nv-wjuCLkH8isdxRYfWcoGg9uDqw/exec', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
+        const res = await fetch('/api/post-to-script', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(data)
+});
+
 
         const txt = await res.text();
         document.getElementById('resultat').textContent = txt.includes('success') 
